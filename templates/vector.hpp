@@ -26,7 +26,7 @@ namespace ft {
 		~vector();
 
 		typedef T										value_type;
-		typedef Allocator								alloc_type;
+		typedef Allocator								allocator_type;
 		typedef std::size_t								size_type;
 		typedef std::ptrdiff_t							difference_type;
 		typedef value_type&								reference;
@@ -38,6 +38,10 @@ namespace ft {
 		vector<T, Allocator> & operator=(const vector<T, Allocator> &rhs);
 		T & operator[](size_t i);
 
+		void assign(size_type count, const T& value );
+		template< class InputIt >
+		void assign( InputIt first, InputIt last );
+		allocator_type get_allocator() const;
 	};
 
 	//Function Definitions
@@ -73,11 +77,12 @@ namespace ft {
 		alloc.deallocate(arr, size);
 	}
 
+	//Operators
 	///copy = operator
 	template<typename T, class Allocator>
 	vector<T, Allocator> & vector<T, Allocator>::operator=(const vector<T, Allocator> &rhs)
 	{
-		T *temp = Allocator::allocate(rhs.size);
+		T *temp = alloc.allocate(rhs.size);
 
 		std::memcpy(temp, rhs.arr, sizeof(T) * rhs.size);
 		alloc.deallocate(arr, size);
@@ -91,6 +96,40 @@ namespace ft {
 	T &vector<T, Allocator>::operator[](size_t i)
 	{
 		return arr[i];
+	}
+
+	//Member functions
+	///assign() with value
+	template<typename T, class Allocator>
+	void vector<T, Allocator>::assign(size_type count, const T& value){
+		alloc.deallocate(arr, size);
+		this->arr = Allocator::allocate(count);
+		this->size = size;
+		for (int i = 0; i < count; ++i)
+		{
+			this->arr[i] = value; //todo faster ??
+		}
+	}
+
+	///assign() with list
+	template<typename T, class Allocator>
+	template< class InputIt >
+	void vector<T, Allocator>::assign( InputIt first, InputIt last ){
+		size_type count = last - first;//todo our ft::distance
+
+		alloc.deallocate(arr, size);
+		this->arr = Allocator::allocate(count);
+		this->size = size;
+		for (size_type i = 0; i < count; ++i)
+		{
+			this->arr[i] = first++; //todo faster ??
+		}
+	}
+
+	///get_allocator()
+	template<typename T, class Allocator>
+	typename vector<T, Allocator>::allocator_type vector<T, Allocator>::get_allocator() const{
+		return alloc;
 	}
 }
 

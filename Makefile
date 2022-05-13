@@ -6,7 +6,7 @@ NAME		= tests_ctainers
 
 CXX			= c++
 
-CFLAGS		= -Wall -Werror -Wextra -std=c++98 -pedantic
+CFLAGS		= -Wall -Werror -Wextra -std=c++98 -pedantic -Itemplates
 
 RM			= rm -rf
 
