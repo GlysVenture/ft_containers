@@ -1,7 +1,8 @@
-#include <iostream>
 
+#include <iostream>
 #include "vector.hpp"
 #include <vector>
+#include "iterator.hpp"
 
 int main()
 {
@@ -9,15 +10,15 @@ int main()
 	std::vector<std::string> a_vec;
 
 	std::cout << "Hello, World! " << std::endl;
-	return 0;
-}
 
-template<class T>
-void destroy(
-	T*,
-	typename std::enable_if<
-		std::is_trivially_destructible<T>::value
-	>::type* = 0
-){
-	std::cout << "destroying trivially destructible T\n";
+	int tab[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+	ft::random_access_iterator<int> iter(tab);
+
+	std::cout << "iterators: " << std::endl;
+	std::cout << *iter << std::endl;
+	std::cout << *(iter + 5) << std::endl;
+	std::cout << std::boolalpha << ((iter) > iter) << std::endl;
+	std::cout << std::boolalpha << ((iter) >= iter) << std::endl;
+	std::cout << iter[1] << std::endl;
+	return 0;
 }

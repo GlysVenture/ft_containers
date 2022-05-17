@@ -103,7 +103,7 @@ namespace ft {
 	template<typename T, class Allocator>
 	void vector<T, Allocator>::assign(size_type count, const T& value){
 		alloc.deallocate(arr, size);
-		this->arr = Allocator::allocate(count);
+		this->arr = Allocator::allocate(count, arr);
 		this->size = size;
 		for (int i = 0; i < count; ++i)
 		{
@@ -115,10 +115,10 @@ namespace ft {
 	template<typename T, class Allocator>
 	template< class InputIt >
 	void vector<T, Allocator>::assign( InputIt first, InputIt last ){
-		size_type count = last - first;//todo our ft::distance
+		size_type count = last - first;//todo our ft::distance ?
 
 		alloc.deallocate(arr, size);
-		this->arr = Allocator::allocate(count);
+		this->arr = Allocator::allocate(count, arr);
 		this->size = size;
 		for (size_type i = 0; i < count; ++i)
 		{

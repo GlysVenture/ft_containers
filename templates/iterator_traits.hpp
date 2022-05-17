@@ -1,8 +1,0 @@
-//
-// Created by Tadeusz Kondracki on 5/13/22.
-//
-
-#ifndef FT_CONTAINERS_ITERATOR_TRAITS_HPP
-# define FT_CONTAINERS_ITERATOR_TRAITS_HPP
-
-#endif //FT_CONTAINERS_ITERATOR_TRAITS_HPP
