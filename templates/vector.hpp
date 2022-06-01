@@ -15,6 +15,7 @@ namespace ft {
 	template<typename T, class Allocator = std::allocator<T> >
 	class vector {
 	private:
+		size_t capacity;
 		size_t size;
 		T *	arr;
 		Allocator alloc;
@@ -38,10 +39,21 @@ namespace ft {
 		vector<T, Allocator> & operator=(const vector<T, Allocator> &rhs);
 		T & operator[](size_t i);
 
+		//funcs
 		void assign(size_type count, const T& value );
 		template< class InputIt >
 		void assign( InputIt first, InputIt last );
 		allocator_type get_allocator() const;
+		//access
+		reference at( size_type pos );
+		const_reference at( size_type pos ) const;
+		reference front();
+		const_reference front() const;
+		reference back();
+		const_reference back() const;
+
+		//capacity
+		bool empty() const;
 	};
 
 	//Function Definitions
@@ -93,7 +105,7 @@ namespace ft {
 
 	///access [] operator
 	template<typename T, class Allocator>
-	T &vector<T, Allocator>::operator[](size_t i)
+	T &vector<T, Allocator>::operator[](vector::size_type i)
 	{
 		return arr[i];
 	}
@@ -101,13 +113,13 @@ namespace ft {
 	//Member functions
 	///assign() with value
 	template<typename T, class Allocator>
-	void vector<T, Allocator>::assign(size_type count, const T& value){
+	void vector<T, Allocator>::assign(vector::size_type count, const T& value){ //todo resize
 		alloc.deallocate(arr, size);
 		this->arr = Allocator::allocate(count, arr);
 		this->size = size;
 		for (int i = 0; i < count; ++i)
 		{
-			this->arr[i] = value; //todo faster ??
+			this->arr[i] = value;
 		}
 	}
 
@@ -115,14 +127,14 @@ namespace ft {
 	template<typename T, class Allocator>
 	template< class InputIt >
 	void vector<T, Allocator>::assign( InputIt first, InputIt last ){
-		size_type count = last - first;//todo our ft::distance ?
+		size_type count = last - first;
 
 		alloc.deallocate(arr, size);
 		this->arr = Allocator::allocate(count, arr);
 		this->size = size;
 		for (size_type i = 0; i < count; ++i)
 		{
-			this->arr[i] = first++; //todo faster ??
+			this->arr[i] = first++;
 		}
 	}
 
@@ -130,6 +142,63 @@ namespace ft {
 	template<typename T, class Allocator>
 	typename vector<T, Allocator>::allocator_type vector<T, Allocator>::get_allocator() const{
 		return alloc;
+	}
+
+	///at()
+	template<typename T, class Allocator>
+	typename vector<T, Allocator>::reference vector<T, Allocator>::at(vector::size_type pos)
+	{
+		if (pos >= size)
+			throw std::out_of_range("vector out of bounds access");
+		return arr[pos];
+	}
+
+	///at() const
+	template<typename T, class Allocator>
+	typename vector<T, Allocator>::const_reference vector<T, Allocator>::at(vector::size_type pos) const
+	{
+		if (pos >= size)
+			throw std::out_of_range("vector out of bounds access");
+		return arr[pos];
+	}
+
+	///front()
+	template<typename T, class Allocator>
+	typename vector<T, Allocator>::reference vector<T, Allocator>::front()
+	{
+		return arr[0];
+	}
+
+	///front() const
+	template<typename T, class Allocator>
+	typename vector<T, Allocator>::const_reference vector<T, Allocator>::front() const
+	{
+		return arr[0];
+	}
+
+	///back()
+	template<typename T, class Allocator>
+	typename vector<T, Allocator>::reference vector<T, Allocator>::back()
+	{
+		return arr[size - 1];
+	}
+
+	///back() const
+	template<typename T, class Allocator>
+	typename vector<T, Allocator>::const_reference vector<T, Allocator>::back() const
+	{
+		return arr[size - 1];
+	}
+
+	//todo data resume
+
+	//Capacity
+	///empty()
+	template<typename T, class Allocator>
+	bool vector<T, Allocator>::empty() const {
+		if (size == 0)
+			return true;
+		return false;
 	}
 }
 
