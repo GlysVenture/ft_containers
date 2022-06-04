@@ -142,7 +142,7 @@ namespace ft {
 
 	///assign() with value
 	template<typename T, class Allocator>
-	void vector<T, Allocator>::assign(vector::size_type count, const T& value){ //todo resize
+	void vector<T, Allocator>::assign(vector::size_type count, const T& value){
 		for (size_t i = 0; i < _size; ++i ) {
 			alloc.destroy(arr[i]);
 		}
