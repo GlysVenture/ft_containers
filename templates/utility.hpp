@@ -41,6 +41,72 @@ namespace ft {
 		}
 		alloc.deallocate(temp, n);
 	}
+
+	///ft::pair template
+	template<class T1, class T2>
+	struct pair {
+		T1	first;
+		T2	second;
+
+		typedef T1	first_type;
+		typedef T2	second_type;
+
+		pair() {  }
+		pair( const T1& x, const T2& y ): first(x), second(y) { }
+		pair( const pair<T1, T2>& p ): first(p.first), second(p.second) {  }
+		~pair() { }
+
+		pair & operator=(const pair & p) {
+			first = p.first;
+			second = p.second;
+			return *this;
+		}
+	};
+
+	//Pair operators <=>
+
+	template< class T1, class T2 >
+	bool operator==( const pair<T1,T2>& lhs, const pair<T1,T2>& rhs ) {
+		if (lhs.first == rhs.first && lhs.second == rhs.second)
+			return true;
+		return false;
+	}
+
+	template< class T1, class T2 >
+	bool operator!=( const pair<T1,T2>& lhs, const pair<T1,T2>& rhs ) {
+		if (lhs.first != rhs.first || lhs.second != rhs.second)
+			return true;
+		return false;
+	}
+
+	template< class T1, class T2 >
+	bool operator<( const pair<T1,T2>& lhs, const pair<T1,T2>& rhs ) {
+		if (lhs.first < rhs.first && lhs.second < rhs.second)
+			return true;
+		return false;
+	}
+
+	template< class T1, class T2 >
+	bool operator>( const pair<T1,T2>& lhs, const pair<T1,T2>& rhs ) {
+		if (lhs.first > rhs.first && lhs.second > rhs.second)
+			return true;
+		return false;
+	}
+
+	template< class T1, class T2 >
+	bool operator<=( const pair<T1,T2>& lhs, const pair<T1,T2>& rhs ) {
+		if (lhs.first <= rhs.first && lhs.second <= rhs.second)
+			return true;
+		return false;
+	}
+
+	template< class T1, class T2 >
+	bool operator>=( const pair<T1,T2>& lhs, const pair<T1,T2>& rhs ) {
+		if (lhs.first >= rhs.first && lhs.second >= rhs.second)
+			return true;
+		return false;
+	}
+
 }
 
 #endif //FT_CONTAINERS_UTILITY_HPP
