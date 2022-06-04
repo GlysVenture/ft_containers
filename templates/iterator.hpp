@@ -35,8 +35,14 @@ namespace ft {
 		typedef typename Iter::iterator_category	iterator_category;
 	};
 
-//	template< class T > //todo understand
-//	struct iterator_traits<T*>;
+	template< class T > //todo understand
+	struct iterator_traits<T*> {
+		typedef typename std::ptrdiff_t				difference_type;
+		typedef	T									value_type;
+		typedef T*									pointer;
+		typedef T&									reference;
+		typedef random_access_iterator_tag			iterator_category;
+	};
 
 	template<class T>
 	class random_access_iterator: public iterator<random_access_iterator_tag, T> {
@@ -104,12 +110,12 @@ namespace ft {
 			return *this;
 		}
 
-		random_access_iterator<T> & operator+(difference_type n) const{
+		random_access_iterator<T> operator+(difference_type n) const{
 			random_access_iterator<T> temp = *this;
 			return temp += n;
 		}
 
-		random_access_iterator<T> & operator-(difference_type n) const{
+		random_access_iterator<T> operator-(difference_type n) const{
 			random_access_iterator<T> temp = *this;
 			return temp -= n;
 		}
@@ -142,7 +148,7 @@ namespace ft {
 
 	//operator + other way around
 	template<class T>
-	random_access_iterator<T> & operator+(const typename random_access_iterator<T>::difference_type n, const random_access_iterator<T> & it) {
+	random_access_iterator<T> operator+(const typename random_access_iterator<T>::difference_type n, const random_access_iterator<T> & it) {
 		return it + n;
 	}
 }
