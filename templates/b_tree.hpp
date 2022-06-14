@@ -13,82 +13,207 @@
 namespace ft {
 
 	///simple binary tree, no fancy red black shenanigans
-	template<typename T>
+	template<typename T, class Compare = std::less<T>, class Allocator = std::allocator<T> >
 	class BTree {
 	public:
 		//typedefs
-		typedef random_access_iterator<BTree<T> >	iterator;
-		typedef size_t								size_type;
+		typedef random_access_iterator<BTree<T> >							iterator;
+		typedef const random_access_iterator<BTree<T> >						const_iterator;
+		typedef size_t														size_type;
+		typedef long														difference_type;
+		typedef typename std::allocator_traits<Allocator>::pointer			pointer;
+		typedef typename std::allocator_traits<Allocator>::const_pointer	const_pointer;
+
 	private:
 		///node class
 		class BTreeNode {
 			friend class BTree;
 			friend class random_access_iterator<BTree<T> >;
 		private:
-			T			elem;
-			BTreeNode * left;
-			BTreeNode * parent;
-			BTreeNode * right;
+			T			* elem;
+			BTreeNode	* left;
+			BTreeNode	* parent;
+			BTreeNode	* right;
 		public:
 			BTreeNode(): parent(NULL), left(NULL), right(NULL) {  }
-			explicit BTreeNode(const T & new_elem): elem(new_elem), parent(NULL), left(NULL), right(NULL) {  }
-			BTreeNode(const BTreeNode & node): elem(node.elem), parent(NULL) {
+			explicit BTreeNode(const T & new_elem): parent(NULL), left(NULL), right(NULL) {
+				elem = alloc.allocate(1);
+				alloc.construct(elem, new_elem);
+			}
+			BTreeNode(const BTreeNode & node): parent(NULL) {
+				elem = alloc.allocate(1);
+				alloc.construct(elem, node.elem);
 				if (node.right != NULL){
-					right = alloc.allocate(1);
-					alloc.construct(right, node.right);
+					right = node_alloc.allocate(1);
+					node_alloc.construct(right, node.right);
 				}
 				if (node.left != NULL){
-					left = alloc.allocate(1);
-					alloc.construct(left, node.left);
+					left = node_alloc.allocate(1);
+					node_alloc.construct(left, node.left);
 				}
 			}
 			~BTreeNode() {
+				alloc.destroy(elem);
+				alloc.deallocate(elem, 1);
 				if (right != NULL){
-					alloc.destroy(right);
-					alloc.deallocate(right, 1);
+					node_alloc.destroy(right);
+					node_alloc.deallocate(right, 1);
 				}
 				if (left != NULL){
-					alloc.destroy(left);
-					alloc.deallocate(left, 1);
+					node_alloc.destroy(left);
+					node_alloc.deallocate(left, 1);
 				}
+			}
+		};
+
+		//priv typedefs
+		typedef std::allocator<BTreeNode>		Node_Alloc;
+
+		//todo hmmm?
+		typedef Compare elem_compare;
+		class value_compare : std::binary_function< T, T, bool >
+		{
+			friend class BTree;
+
+		protected:
+			Compare comp;
+			explicit value_compare(Compare c) : comp(c) {}
+
+		public:
+			typedef bool result_type;
+			typedef T first_argument_type;
+			typedef T second_argument_type;
+			bool operator()(const T &x, const T &y) const
+			{
+				return comp(x, y);
 			}
 		};
 
 
 		//Btree
-		static std::allocator<BTreeNode>	alloc;
+		static std::allocator<BTreeNode>	node_alloc;
+		static Allocator					alloc;
 		BTreeNode *							head;
 		size_t								size;
+		value_compare						_comparator;
 
-		BTree(): head(NULL), size(0) {}
+		explicit BTree(const elem_compare &comp = elem_compare()): head(NULL), size(0), _comparator(comp) {  }
 		BTree(const BTree & inst): size(inst.size) {
+			_comparator = inst._comparator;
 			if (inst.head == NULL){
 				head = NULL;
 				return;
 			}
-			head = alloc.allocate(1);
-			alloc.construct(head, *(inst.head));
+			head = node_alloc.allocate(1);
+			node_alloc.construct(head, *(inst.head));
 		}
 		~BTree() {
 			if (head != NULL) {
-				alloc.destroy(head);
-				alloc.deallocate(head, 1);
+				node_alloc.destroy(head);
+				node_alloc.deallocate(head, 1);
 			}
 		}
 
 		//needed funcs todo add remove find begin last end
+		iterator	begin() {
+			BTreeNode * current = head;
+			while (current->left != NULL)
+				current = current->left;
+			return iterator(current);
+		}
+
+		iterator	last() {
+			BTreeNode * current = head;
+			while (current->right != NULL)
+				current = current->right;
+			return iterator(current);
+		}
+
+		iterator	end() {
+			BTreeNode * current = head;
+			while (current->right != NULL)
+				current = current->right;
+			return (iterator(current)++);
+		}
+
+		iterator	find(const T & e){
+			BTreeNode * current = head;
+			while (current != NULL) {
+				if (_comparator(*(current->elem), e))
+				{
+					current = current->right;
+				}
+				else if (_comparator(e, *(current->elem)))
+				{
+					current = current->left;
+				}
+				else {
+					return iterator(current);
+				}
+			}
+			return this->end();
+		}
+
+		///attention trouve des pointeurs a modifier!
+		BTreeNode **	find_ptr(const T & e){
+			BTreeNode ** current = &head;
+			while (*current != NULL) {
+				if (_comparator(*(*current->elem), e))
+				{
+					*current = *current->right;
+				}
+				else if (_comparator(e, *(*current->elem)))
+				{
+					current = *current->left;
+				}
+				else {
+					return current;
+				}
+			}
+			return current;
+		}
+
+		typename Node_Alloc::pointer create_new(const T & e) {
+			typename Node_Alloc::pointer n = node_alloc.allocate(1);
+			node_alloc.construct(n, BTreeNode(e));
+		}
+
+		void	remove_node(typename Node_Alloc::pointer p) {
+			node_alloc.destroy(p);
+			node_alloc.deallocate(p, 1);
+		}
+
 		iterator	add(const T & e) {
-
-		}
-		size_type	remove(const T & e) {
-
-		}
-		size_type	remove(iterator it) {
-
-		}size_type	remove(iterator first, iterator last) {
-
+			BTreeNode ** spot = find_ptr(e);
+			if (*spot == NULL) {
+				*spot = create_new(e);
+			}
+			return (iterator(*spot));
 		}
 
+		//todo much work
+		void	remove(const T & e) {
+			BTreeNode ** spot = find_ptr(e);
+			if (*spot != NULL) {
+				remove_node(*spot);
+				*spot = NULL;
+			}
+		}
+
+		void	remove(iterator it) {
+			BTreeNode * temp = it._base();
+			if (temp->parent != NULL){
+				if (temp->parent->left == temp)
+					temp->parent->left = NULL;
+				else
+					temp->parent->right = NULL;
+			}
+			remove_node(temp);
+		}
+
+		void	remove(iterator first, iterator last) {
+
+		}
 
 	};
 
@@ -119,6 +244,10 @@ namespace ft {
 			return *this;
 		}
 
+		pointer _base() {
+			return current;
+		}
+
 		It  operator++(int){
 			It temp = *this;
 			if (_end) //undefined but still dealt with
@@ -129,14 +258,17 @@ namespace ft {
 					current = current->left;
 			}
 			else {
+				It dangle = *this;
 				while (current->parent != NULL &&
 				current == current->parent->right) {
 					current = current->parent;
 				}
 				if (current->parent != NULL)
 					current = current->parent;
-				else
+				else{
+					*this = dangle;
 					_end = true;
+				}
 			}
 			return temp;
 		}
@@ -150,14 +282,17 @@ namespace ft {
 					current = current->left;
 			}
 			else {
+				It dangle = *this;
 				while (current->parent != NULL &&
 					   current == current->parent->right) {
 					current = current->parent;
 				}
 				if (current->parent != NULL)
 					current = current->parent;
-				else
+				else {
+					*this = dangle;
 					_end = true;
+				}
 			}
 			return *this;
 		}
