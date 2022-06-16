@@ -121,7 +121,7 @@ namespace ft {
 		for (size_t i = 0; i < _size; ++i ) {
 			alloc.destroy(arr + i);
 		}
-		alloc.deallocate(arr, _size);
+		alloc.deallocate(arr, _capacity);
 	}
 
 	///copy = operator

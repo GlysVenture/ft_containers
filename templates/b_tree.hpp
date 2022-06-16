@@ -17,12 +17,12 @@ namespace ft {
 	class BTree {
 	public:
 		//typedefs
-		typedef random_access_iterator<BTree<T> >							iterator;
-		typedef const random_access_iterator<BTree<T> >						const_iterator;
-		typedef size_t														size_type;
-		typedef long														difference_type;
-		typedef typename std::allocator_traits<Allocator>::pointer			pointer;
-		typedef typename std::allocator_traits<Allocator>::const_pointer	const_pointer;
+		typedef random_access_iterator<BTree<T> >				iterator;
+		typedef const random_access_iterator<BTree<T> >			const_iterator;
+		typedef size_t											size_type;
+		typedef long											difference_type;
+		typedef typename Allocator::pointer						pointer;
+		typedef typename Allocator::const_pointer				const_pointer;
 
 	private:
 		///node class
@@ -30,10 +30,14 @@ namespace ft {
 			friend class BTree;
 			friend class random_access_iterator<BTree<T> >;
 		private:
-			T			* elem;
-			BTreeNode	* left;
-			BTreeNode	* parent;
-			BTreeNode	* right;
+			//priv typedefs
+			typedef typename Allocator::template rebind_alloc<BTreeNode>	Node_Alloc;
+			typedef typename Node_Alloc::pointer	node_ptr;
+
+			BTree::pointer	elem;
+			node_ptr	 	left;
+			node_ptr	 	parent;
+			node_ptr	 	right;
 		public:
 			BTreeNode(): parent(NULL), left(NULL), right(NULL) {  }
 			explicit BTreeNode(const T & new_elem): parent(NULL), left(NULL), right(NULL) {
@@ -46,10 +50,12 @@ namespace ft {
 				if (node.right != NULL){
 					right = node_alloc.allocate(1);
 					node_alloc.construct(right, node.right);
+					right->parent = this;
 				}
 				if (node.left != NULL){
 					left = node_alloc.allocate(1);
 					node_alloc.construct(left, node.left);
+					left->parent = this;
 				}
 			}
 			~BTreeNode() {
@@ -67,7 +73,8 @@ namespace ft {
 		};
 
 		//priv typedefs
-		typedef std::allocator<BTreeNode>		Node_Alloc;
+		typedef typename Allocator::template rebind_alloc<BTreeNode>	Node_Alloc;
+		typedef typename Node_Alloc::pointer	node_ptr;
 
 		//todo hmmm?
 		typedef Compare elem_compare;
@@ -93,7 +100,7 @@ namespace ft {
 		//Btree
 		static std::allocator<BTreeNode>	node_alloc;
 		static Allocator					alloc;
-		BTreeNode *							head;
+		node_ptr							head;
 		size_t								size;
 		value_compare						_comparator;
 
@@ -116,28 +123,28 @@ namespace ft {
 
 		//needed funcs todo add remove find begin last end
 		iterator	begin() {
-			BTreeNode * current = head;
+			node_ptr current = head;
 			while (current->left != NULL)
 				current = current->left;
 			return iterator(current);
 		}
 
 		iterator	last() {
-			BTreeNode * current = head;
+			node_ptr current = head;
 			while (current->right != NULL)
 				current = current->right;
 			return iterator(current);
 		}
 
 		iterator	end() {
-			BTreeNode * current = head;
+			node_ptr current = head;
 			while (current->right != NULL)
 				current = current->right;
 			return (iterator(current)++);
 		}
 
 		iterator	find(const T & e){
-			BTreeNode * current = head;
+			node_ptr current = head;
 			while (current != NULL) {
 				if (_comparator(*(current->elem), e))
 				{
@@ -154,65 +161,100 @@ namespace ft {
 			return this->end();
 		}
 
-		///attention trouve des pointeurs a modifier!
-		BTreeNode **	find_ptr(const T & e){
-			BTreeNode ** current = &head;
-			while (*current != NULL) {
-				if (_comparator(*(*current->elem), e))
+		///attention trouve possible le precedent ou pas
+		node_ptr	find_prev_or(const T & e){
+			node_ptr prev = head;
+			node_ptr current = head;
+			while (current != NULL) {
+				prev = current;
+				if (_comparator(*(current->elem), e))
 				{
-					*current = *current->right;
+					current = current->right;
 				}
-				else if (_comparator(e, *(*current->elem)))
+				else if (_comparator(e, *(current->elem)))
 				{
-					current = *current->left;
+					current = current->left;
 				}
 				else {
 					return current;
 				}
 			}
-			return current;
+			return prev;
 		}
 
-		typename Node_Alloc::pointer create_new(const T & e) {
-			typename Node_Alloc::pointer n = node_alloc.allocate(1);
+		node_ptr create_new(const T & e) {
+			node_ptr n = node_alloc.allocate(1);
 			node_alloc.construct(n, BTreeNode(e));
 		}
 
-		void	remove_node(typename Node_Alloc::pointer p) {
+		void	remove_node(node_ptr p) {
+			node_ptr freespot;
+
+			freespot = p->right;
+			while (freespot->left != NULL)
+				freespot = freespot->left;
+			freespot->left = p->left;
+			p->left->parent = freespot;
+
+			p->right->parent = p->parent;
+			if (p->parent == NULL)
+				head = p->right;
+			else if (p->parent->left == p)
+				p->parent->left = p->right;
+			else
+				p->parent->right = p->right;
+
 			node_alloc.destroy(p);
 			node_alloc.deallocate(p, 1);
 		}
 
 		iterator	add(const T & e) {
-			BTreeNode ** spot = find_ptr(e);
-			if (*spot == NULL) {
-				*spot = create_new(e);
+			node_ptr spot = find_prev_or(e);
+			if (spot == NULL) {
+				head = create_new(e);
+				return iterator(head);
 			}
-			return (iterator(*spot));
+			else if (!_comparator(e, *(spot->elem))
+					 && !_comparator(*(spot->elem), e))
+				return (iterator(spot));
+			else {
+				if (_comparator(e, *(spot->elem))){
+					spot->left = create_new(e);
+					spot->left->parent = spot;
+				}
+				else {
+					spot->right = create_new(e);
+					spot->right->parent = spot;
+				}
+			}
+			return (iterator(spot));
 		}
 
-		//todo much work
 		void	remove(const T & e) {
-			BTreeNode ** spot = find_ptr(e);
-			if (*spot != NULL) {
-				remove_node(*spot);
-				*spot = NULL;
-			}
+			node_ptr spot = find_prev_or(e);
+			if (spot != NULL
+				&& !_comparator(e, *(spot->elem))
+				&& !_comparator(*(spot->elem), e))
+				remove_node(spot);
 		}
 
 		void	remove(iterator it) {
-			BTreeNode * temp = it._base();
-			if (temp->parent != NULL){
-				if (temp->parent->left == temp)
-					temp->parent->left = NULL;
-				else
-					temp->parent->right = NULL;
-			}
-			remove_node(temp);
+			node_ptr temp = it._base();
+			if (temp != NULL)
+				remove_node(temp);
 		}
 
 		void	remove(iterator first, iterator last) {
+			difference_type	len = last - first;
+			node_ptr * arr = new node_ptr[len];
+			long i = 0;
 
+			while (first != last)
+				arr[i++] = (first++)._base();
+			i = 0;
+			while (i < len)
+				remove_node(arr[i++]);
+			delete[] arr;
 		}
 
 	};
@@ -229,7 +271,7 @@ namespace ft {
 	public:
 		typedef long	difference_type;
 		typedef T 									value_type;
-		typedef typename BTree<T>::BTreeNode *		pointer;
+		typedef typename BTree<T>::BTreeNode::node_ptr 		pointer;
 		typedef T&									reference;
 		typedef random_access_iterator_tag			iterator_category;
 
