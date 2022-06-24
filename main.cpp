@@ -3,6 +3,7 @@
 #include "vector.hpp"
 #include <vector>
 #include "iterator.hpp"
+#include "map.hpp"
 
 int main()
 {

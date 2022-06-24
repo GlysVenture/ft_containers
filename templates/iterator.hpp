@@ -54,6 +54,7 @@ namespace ft {
 		typedef random_access_iterator_tag			iterator_category;
 	};
 
+	///random access iterator
 	template<class T>
 	class random_access_iterator: public iterator<random_access_iterator_tag, T> {
 	private:
@@ -162,6 +163,66 @@ namespace ft {
 		return it + n;
 	}
 
+	///Bidirectional iterator
+	template<class T>
+	class bidirectional_iterator: public iterator<bidirectional_iterator_tag, T> {
+	private:
+		typedef bidirectional_iterator<T> It;
+
+		typename iterator<bidirectional_iterator_tag, T>::pointer current;
+	public:
+		typedef typename iterator<bidirectional_iterator_tag, T>::difference_type 	difference_type;
+		typedef typename iterator<bidirectional_iterator_tag, T>::value_type 		value_type;
+		typedef typename iterator<bidirectional_iterator_tag, T>::pointer			pointer;
+		typedef typename iterator<bidirectional_iterator_tag, T>::reference			reference;
+		typedef typename iterator<bidirectional_iterator_tag, T>::iterator_category	iterator_category;
+
+		bidirectional_iterator(pointer c) {current = c; };
+		bidirectional_iterator(const bidirectional_iterator<T> & inst) { *this = inst; };
+		~bidirectional_iterator() {};
+
+		// #################################################################################
+		// operators
+		It & operator=(const It & rhs){
+			current = rhs.current;
+			return *this;
+		}
+
+		It  operator++(int){
+			random_access_iterator<T> temp = *this;
+			current++;
+			return temp;
+		}
+
+		It &  operator++(){
+			current++;
+			return *this;
+		}
+
+		reference  operator*() const{
+			return *current;
+		}
+		bool  operator==(const It & rhs) const{
+			return current == rhs.current;
+		}
+		bool  operator!=(const It & rhs) const{
+			return current != rhs.current;
+		}
+
+		It  operator--(int){
+			It temp = *this;
+			current--;
+			return temp;
+		}
+
+		It &  operator--(){
+			current--;
+			return *this;
+		}
+
+	};
+
+	///Reverse iterator
 	template< class Iter >
 	class reverse_iterator:
 		iterator<typename iterator_traits<Iter>::iterator_category,
