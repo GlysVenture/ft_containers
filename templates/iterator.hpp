@@ -15,7 +15,7 @@ namespace ft {
 	template<class Category,
 		class T,
 		class Distance = std::ptrdiff_t,
-		class Pointer = T*,
+		class Pointer = T *,
 		class Reference = T&>
 	struct iterator {
 	protected:
@@ -54,6 +54,18 @@ namespace ft {
 		typedef random_access_iterator_tag			iterator_category;
 	};
 
+	template< class InputIt >
+	typename ft::iterator_traits< InputIt >::difference_type distance(InputIt first, InputIt last)
+	{
+		typename ft::iterator_traits< InputIt >::difference_type dist = 0;
+		while (first != last)
+		{
+			first++;
+			dist++;
+		}
+		return (dist);
+	}
+
 	///random access iterator
 	template<class T>
 	class random_access_iterator: public iterator<random_access_iterator_tag, T> {
@@ -69,24 +81,25 @@ namespace ft {
 		typedef typename iterator<random_access_iterator_tag, T>::iterator_category	iterator_category;
 
 		random_access_iterator(pointer c) {current = c; };
-		random_access_iterator(const random_access_iterator<T> & inst) { *this = inst; };
+		random_access_iterator(const random_access_iterator<T> & inst): current(inst.current) { };
 		~random_access_iterator() {};
 
 		// #################################################################################
 		// operators
-		It & operator=(const random_access_iterator<T> & rhs){
+
+		pointer	_base() const { return current; };
+
+		It & operator=(const It & rhs){
 			current = rhs.current;
 			return *this;
 		}
 
-		random_access_iterator<T>  operator++(int){
-			random_access_iterator<T> temp = *this;
-			current++;
-			return temp;
+		It  operator++(int){
+			return It(current++);
 		}
 
-		random_access_iterator<T> &  operator++(){
-			current++;
+		It & operator++(){
+			++current;
 			return *this;
 		}
 
@@ -100,10 +113,8 @@ namespace ft {
 			return current != rhs.current;
 		}
 
-		random_access_iterator<T>  operator--(int){
-			random_access_iterator<T> temp = *this;
-			current--;
-			return temp;
+		It  operator--(int){
+			return It(current--);
 		}
 
 		random_access_iterator<T> &  operator--(){
@@ -121,14 +132,12 @@ namespace ft {
 			return *this;
 		}
 
-		random_access_iterator<T> operator+(difference_type n) const{
-			random_access_iterator<T> temp = *this;
-			return temp += n;
+		It operator+(difference_type n) const{
+			return It(current + n);
 		}
 
-		random_access_iterator<T> operator-(difference_type n) const{
-			random_access_iterator<T> temp = *this;
-			return temp -= n;
+		It operator-(difference_type n) const{
+			return It(current - n);
 		}
 
 		difference_type operator-(const random_access_iterator<T> & rhs) const{

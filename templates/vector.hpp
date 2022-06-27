@@ -10,6 +10,9 @@
 #include <stdint.h>
 #include "utility.hpp"
 #include "iterator.hpp"
+#include "algorithm.hpp"
+#include "type_traits.hpp"
+#include "enable_if.hpp"
 
 namespace ft {
 
@@ -24,11 +27,6 @@ namespace ft {
 		Allocator alloc;
 
 	public:
-		vector();
-		explicit vector(const Allocator & alloc);
-		vector(const vector<T, Allocator> & inst);
-		~vector();
-
 		typedef T										value_type;
 		typedef Allocator								allocator_type;
 		typedef std::size_t								size_type;
@@ -38,14 +36,25 @@ namespace ft {
 		typedef typename Allocator::pointer				pointer;
 		typedef typename Allocator::const_pointer		const_pointer;
 		typedef random_access_iterator<T>				iterator;
-		typedef const random_access_iterator<T>			const_iterator;
+		typedef random_access_iterator<const T>			const_iterator;
+
+
+		explicit vector(const allocator_type& alloc = allocator_type());
+		explicit vector (size_type n, const value_type& val = value_type(),
+	 			const allocator_type& alloc = allocator_type());
+		template <class InputIterator>
+		vector(InputIterator first, InputIterator last,
+	   			const allocator_type& alloc = allocator_type(),
+			   typename ft::enable_if< !ft::is_integral< InputIterator >::value, int >::type = 0);
+		vector(const vector<T, Allocator> & inst);
+		~vector();
 
 		vector<T, Allocator> & operator=(const vector<T, Allocator> &rhs);
 
 		//funcs
 		void assign(size_type count, const T& value );
 		template< class InputIt >
-		void assign( InputIt first, InputIt last );
+		void assign( InputIt first, InputIt last , typename ft::enable_if< !ft::is_integral< InputIt >::value, int >::type = 0);
 		allocator_type get_allocator() const;
 
 		//access
@@ -94,24 +103,39 @@ namespace ft {
 
 	///default constructor
 	template<typename T, class Allocator>
-	vector<T, Allocator>::vector(): _size(0), _capacity(0)
+	vector<T, Allocator>::vector(const allocator_type & alloc): _size(0), _capacity(0), alloc(alloc)
 	{
-		arr = alloc.allocate(_capacity);
+		arr = this->alloc.allocate(_capacity);
 	}
 
-	///allocator constructor
+	///fill constructor
 	template<typename T, class Allocator>
-	vector<T, Allocator>::vector(const Allocator &alloc): alloc(alloc), _size(0), _capacity(0)
-	{
-		arr = alloc.allocate(_capacity);
+	vector<T, Allocator>::vector(vector::size_type n, const vector::value_type & val,
+					 const vector::allocator_type & alloc) : _size(n), _capacity(n), alloc(alloc){
+		arr = this->alloc.allocate(_capacity);
+		for (vector::size_type i = 0; i < _size; i++ ) {
+			this->alloc.construct(arr + i, val);
+		}
+
+	}
+
+	///range constructor
+	template<typename T, class Allocator>
+	template< class InputIterator>
+	vector<T, Allocator>::vector(InputIterator first, InputIterator last,
+			const vector::allocator_type& alloc,
+		 	typename ft::enable_if< !ft::is_integral< InputIterator >::value, int >::type
+		 	) : _size(0), _capacity(0), alloc(alloc) {
+		this->reserve(ft::distance(first, last));
+		this->insert(this->begin(), first, last);
 	}
 
 	///copy constructor
 	template<typename T, class Allocator>
-	vector<T, Allocator>::vector(const vector<T, Allocator> &inst) : _size(inst._size), _capacity(inst._capacity)
+	vector<T, Allocator>::vector(const vector<T, Allocator> &inst) : _size(inst._size), _capacity(inst._capacity), alloc(inst.alloc)
 	{
 		arr = alloc.allocate(_capacity);
-		copy<T, Allocator>(arr, inst._arr(), _size , alloc);
+		copy<T, Allocator>(arr, inst.arr, _size , alloc);
 	}
 
 	///default destructor
@@ -121,7 +145,8 @@ namespace ft {
 		for (size_t i = 0; i < _size; ++i ) {
 			alloc.destroy(arr + i);
 		}
-		alloc.deallocate(arr, _capacity);
+		if (_capacity > 0)
+			alloc.deallocate(arr, _capacity);
 	}
 
 	///copy = operator
@@ -144,21 +169,22 @@ namespace ft {
 	template<typename T, class Allocator>
 	void vector<T, Allocator>::assign(vector::size_type count, const T& value){
 		for (size_t i = 0; i < _size; ++i ) {
-			alloc.destroy(arr[i]);
+			alloc.destroy(arr + i);
 		}
 		this->reserve(count);
 		this->_size = count;
 		for (size_t i = 0; i < _size; ++i)
 		{
-			alloc.construct(arr, value);
+			alloc.construct(arr + i, value);
 		}
 	}
 
 	///assign() with list
 	template<typename T, class Allocator>
 	template< class InputIt >
-	void vector<T, Allocator>::assign( InputIt first, InputIt last ){
-		size_type count = last - first;
+	void vector<T, Allocator>::assign( InputIt first, InputIt last,
+			   typename ft::enable_if< !ft::is_integral< InputIt >::value, int >::type){
+		size_type count = ft::distance(first, last);
 
 		for (size_t i = 0; i < _size; ++i ) {
 			alloc.destroy(arr + i);
@@ -167,7 +193,8 @@ namespace ft {
 		this->_size = count;
 		for (size_t i = 0; i < _size; ++i)
 		{
-			alloc.construct(arr, first++);
+			alloc.construct(arr + i, (*first));
+			first++;
 		}
 	}
 
@@ -264,7 +291,7 @@ namespace ft {
 	template<typename T, class Allocator>
 	typename vector<T, Allocator>::const_iterator vector<T, Allocator>::begin() const
 	{
-		return vector::iterator(arr);
+		return vector::const_iterator(arr);
 	}
 
 	template<typename T, class Allocator>
@@ -276,7 +303,7 @@ namespace ft {
 	template<typename T, class Allocator>
 	typename vector<T, Allocator>::const_iterator vector<T, Allocator>::end() const
 	{
-		return vector::iterator(arr + _size);
+		return vector::const_iterator(arr + _size);
 	}
 
 	//todo reverse iterator compatibility funcs
@@ -291,7 +318,7 @@ namespace ft {
 		return false;
 	}
 
-	///size()
+	///_size()
 	template<typename T, class Allocator>
 	typename vector<T, Allocator>::size_type vector<T, Allocator>::size() const
 	{
@@ -302,21 +329,21 @@ namespace ft {
 	template<typename T, class Allocator>
 	typename vector<T, Allocator>::size_type vector<T, Allocator>::max_size() const
 	{
-		return SIZE_MAX;
+		return alloc.max_size();
 	}
 
 	///reserve()
 	template<typename T, class Allocator>
 	void vector<T, Allocator>::reserve(vector::size_type new_cap)
 	{
-		if (new_cap > this->max_size())
+		if (new_cap > this->max_size() - this->_capacity)
 			throw std::length_error("vector capacity requested is too big");
 		if (new_cap > _capacity)
 		{
 			T * temp = alloc.allocate(new_cap);
-
 			rebuild(temp, arr, _size, alloc);
-			alloc.deallocate(arr, _capacity);
+			if (_capacity > 0)
+				alloc.deallocate(arr, _capacity);
 			arr = temp;
 			_capacity = new_cap;
 		}
@@ -388,7 +415,7 @@ namespace ft {
 	void vector<T, Allocator>::insert(vector::iterator pos, InputIt first,
 									  InputIt last)
 	{
-		size_type count = last - first;
+		size_type count = ft::distance(first, last);
 
 		if (count == 0)
 			return;
@@ -495,6 +522,50 @@ namespace ft {
 
 	//Operators ---------------------------------------------------------------
 	//todo?
+	template<typename T, class Allocator>
+	bool operator<( const vector<T,Allocator>& lhs,
+					 const vector<T,Allocator>& rhs ){
+		typename vector<T, Allocator>::size_type i = 0;
+		return ft::lexicographical_compare<
+				vector<T, Allocator>::iterator,
+				vector<T, Allocator>::iterator>
+				(lhs.begin(), lhs.end(),
+				rhs.begin(), rhs.end());
+	}
+
+	template<typename T, class Allocator>
+	bool operator>( const vector<T,Allocator>& lhs,
+					 const vector<T,Allocator>& rhs ){
+		return rhs < lhs;
+	}
+
+	template<typename T, class Allocator>
+	bool operator==( const vector<T,Allocator>& lhs,
+					 const vector<T,Allocator>& rhs ){
+		if (!(lhs < rhs) && !(rhs < lhs))
+			return true;
+		return false;
+	}
+
+	template<typename T, class Allocator>
+	bool operator!=( const vector<T,Allocator>& lhs,
+					 const vector<T,Allocator>& rhs ){
+		if (!(lhs < rhs) && !(rhs < lhs))
+			return false;
+		return true;
+	}
+
+	template<typename T, class Allocator>
+	bool operator<=( const vector<T,Allocator>& lhs,
+					 const vector<T,Allocator>& rhs ){
+		return !(lhs > rhs);
+	}
+
+	template<typename T, class Allocator>
+	bool operator>=( const vector<T,Allocator>& lhs,
+					 const vector<T,Allocator>& rhs ){
+		return !(lhs < rhs);
+	}
 }
 
 #endif //FT_CONTAINERS_VECTOR_HPP
