@@ -37,6 +37,8 @@ namespace ft {
 		typedef typename Allocator::const_pointer		const_pointer;
 		typedef random_access_iterator<T>				iterator;
 		typedef random_access_iterator<const T>			const_iterator;
+		typedef ft::reverse_iterator<iterator>			reverse_iterator;
+		typedef ft::reverse_iterator<const_iterator>	const_reverse_iterator;
 
 
 		explicit vector(const allocator_type& alloc = allocator_type());
@@ -75,6 +77,11 @@ namespace ft {
 		iterator end();
 		const_iterator end() const;
 
+		reverse_iterator rbegin();
+		const_reverse_iterator rbegin() const;
+		reverse_iterator rend();
+		const_reverse_iterator rend() const;
+
 		//capacity
 		bool empty() const;
 		size_type size() const;
@@ -87,7 +94,7 @@ namespace ft {
 		iterator insert( iterator pos, const T& value );
 		void insert( iterator pos, size_type count, const T& value );
 		template< class InputIt >
-		void insert( iterator pos, InputIt first, InputIt last );
+		void insert( iterator pos, InputIt first, InputIt last, typename ft::enable_if< !ft::is_integral< InputIt >::value, int >::type = 0 );
 		iterator erase( iterator pos );
 		iterator erase( iterator first, iterator last );
 		void push_back( const T& value );
@@ -306,7 +313,30 @@ namespace ft {
 		return vector::const_iterator(arr + _size);
 	}
 
-	//todo reverse iterator compatibility funcs
+	template<typename T, class Allocator>
+	typename vector<T, Allocator>::reverse_iterator vector<T, Allocator>::rbegin()
+	{
+		return vector::reverse_iterator(arr + _size);
+	}
+
+	template<typename T, class Allocator>
+	typename vector<T, Allocator>::const_reverse_iterator vector<T, Allocator>::rbegin() const
+	{
+		return vector::const_reverse_iterator(arr + _size);
+	}
+
+	template<typename T, class Allocator>
+	typename vector<T, Allocator>::reverse_iterator vector<T, Allocator>::rend()
+	{
+		return vector::reverse_iterator(arr);
+	}
+
+	template<typename T, class Allocator>
+	typename vector<T, Allocator>::const_reverse_iterator vector<T, Allocator>::rend() const
+	{
+		return vector::const_reverse_iterator(arr);
+	}
+
 
 	//Capacity ----------------------------------------------------------------
 
@@ -379,7 +409,7 @@ namespace ft {
 		}
 		size_t index = pos - this->begin();
 		this->reserve(_size + 1);
-		move(arr + index + 1, arr + index, _size - index);
+		move(arr + index + 1, arr + index, _size - index, alloc);
 		alloc.construct(arr + index, value);
 		_size++;
 		return vector::iterator(arr + index);
@@ -413,7 +443,7 @@ namespace ft {
 	template<typename T, class Allocator>
 	template<class InputIt>
 	void vector<T, Allocator>::insert(vector::iterator pos, InputIt first,
-									  InputIt last)
+									  InputIt last, typename ft::enable_if< !ft::is_integral< InputIt >::value, int >::type)
 	{
 		size_type count = ft::distance(first, last);
 
@@ -497,7 +527,7 @@ namespace ft {
 		}
 		this->reserve(count);
 		while (_size < count)
-			alloc.construct(arr + _size++);
+			alloc.construct(arr + _size++, value);
 	}
 
 	///swap()
@@ -525,10 +555,7 @@ namespace ft {
 	template<typename T, class Allocator>
 	bool operator<( const vector<T,Allocator>& lhs,
 					 const vector<T,Allocator>& rhs ){
-		typename vector<T, Allocator>::size_type i = 0;
-		return ft::lexicographical_compare<
-				vector<T, Allocator>::iterator,
-				vector<T, Allocator>::iterator>
+		return ft::lexicographical_compare
 				(lhs.begin(), lhs.end(),
 				rhs.begin(), rhs.end());
 	}
