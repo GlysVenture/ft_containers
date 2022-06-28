@@ -17,21 +17,24 @@ namespace ft {
 	class BTree {
 	public:
 		//typedefs
-		typedef bidirectional_iterator<BTree<T> >				iterator;
-		typedef const bidirectional_iterator<BTree<T> >			const_iterator;
+		typedef bidirectional_iterator<BTree >					iterator;
+		typedef bidirectional_iterator<const BTree >			const_iterator;
 		typedef size_t											size_type;
 		typedef long											difference_type;
+		typedef T												value_type;
+		typedef T &												reference;
+		typedef const T &										const_reference;
 		typedef typename Allocator::pointer						pointer;
 		typedef typename Allocator::const_pointer				const_pointer;
 
-	private:
 		///node class
 		class BTreeNode {
 			friend class BTree;
-			friend class bidirectional_iterator<BTree<T> >;
+			friend class bidirectional_iterator<BTree >;
+			friend class bidirectional_iterator<const BTree >;
 		private:
 			//priv typedefs
-			typedef typename Allocator::template rebind_alloc<BTreeNode>	Node_Alloc;
+			typedef typename Allocator::template rebind<BTreeNode>::other	Node_Alloc;
 			typedef typename Node_Alloc::pointer	node_ptr;
 
 			Node_Alloc		node_alloc;
@@ -41,23 +44,27 @@ namespace ft {
 			node_ptr	 	parent;
 			node_ptr	 	right;
 		public:
-			BTreeNode(const Allocator& alloc, const Node_Alloc & nalloc): parent(NULL), left(NULL), right(NULL), alloc(alloc), node_alloc(nalloc) {  }
-			BTreeNode(const T & new_elem, const Allocator& alloc, const Node_Alloc & nalloc): parent(NULL), left(NULL), right(NULL), alloc(alloc), node_alloc(nalloc) {
-				elem = alloc.allocate(1);
+			BTreeNode(const Allocator& alloc, const Node_Alloc & nalloc): node_alloc(nalloc), alloc(alloc), left(NULL), parent(NULL), right(NULL) {  }
+			BTreeNode(const T & new_elem, const Allocator& al, const Node_Alloc & nalloc): node_alloc(nalloc), alloc(al), left(NULL), parent(NULL), right(NULL) {
+				elem = alloc.allocate(1, 0);
 				alloc.construct(elem, new_elem);
 			}
-			BTreeNode(const BTreeNode & node): parent(NULL), alloc(node.alloc), node_alloc(node.node_alloc) {
-				elem = alloc.allocate(1);
-				alloc.construct(elem, node.elem);
+			BTreeNode(const BTreeNode & node): node_alloc(node.node_alloc), alloc(node.alloc), parent(NULL){
+				elem = alloc.allocate(1, 0);
+				alloc.construct(elem, *(node.elem));
 				if (node.right != NULL){
-					right = node_alloc.allocate(1);
-					node_alloc.construct(right, node.right);
+					right = node_alloc.allocate(1, 0);
+					node_alloc.construct(right, *(node.right));
 					right->parent = this;
+				} else {
+					right = NULL;
 				}
 				if (node.left != NULL){
-					left = node_alloc.allocate(1);
-					node_alloc.construct(left, node.left);
+					left = node_alloc.allocate(1, 0);
+					node_alloc.construct(left, *(node.left));
 					left->parent = this;
+				} else {
+					left = NULL;
 				}
 			}
 			~BTreeNode() {
@@ -75,7 +82,7 @@ namespace ft {
 		};
 	private:
 		//priv typedefs
-		typedef typename Allocator::template rebind_alloc<BTreeNode>	Node_Alloc;
+		typedef typename Allocator::template rebind<BTreeNode>::other	Node_Alloc;
 		typedef typename Node_Alloc::pointer	node_ptr;
 	public:
 		///Compare class
@@ -107,7 +114,7 @@ namespace ft {
 		value_compare						_comparator;
 
 	public:
-		explicit BTree(const elem_compare &comp = elem_compare(), const Allocator& alloc = Allocator()): alloc(alloc), head(NULL), _size(0), _comparator(comp) {  }
+		explicit BTree(const elem_compare &comp = elem_compare(), const Allocator& alloc = Allocator()): node_alloc(Node_Alloc()), alloc(alloc), head(NULL), _size(0), _comparator(comp) {  }
 		BTree(const BTree & inst): node_alloc(inst.node_alloc), alloc(inst.alloc), _size(inst._size), _comparator(inst._comparator) {
 			if (inst.head == NULL){
 				head = NULL;
@@ -145,26 +152,53 @@ namespace ft {
 			return alloc;
 		}
 
-		//needed funcs todo add remove find begin last end
+		void swap(BTree & other){
+			size_type t_size = _size;
+			node_ptr t_head = head;
+
+			_size = other._size;
+			head = other.head;
+
+			other._size = t_size;
+			other.head = t_head;
+		}
+
+		//it
 		iterator	begin() {
+			if (head == NULL)
+				return end();
 			node_ptr current = head;
 			while (current->left != NULL)
 				current = current->left;
 			return iterator(current);
 		}
 
-		iterator	last() {
+		const_iterator	begin() const {
+			if (head == NULL)
+				return end();
 			node_ptr current = head;
-			while (current->right != NULL)
-				current = current->right;
-			return iterator(current);
+			while (current->left != NULL){
+				current = current->left;
+			}
+			return const_iterator(current);
 		}
 
 		iterator	end() {
+			if (head == NULL)
+				return iterator();
 			node_ptr current = head;
 			while (current->right != NULL)
 				current = current->right;
-			return (iterator(current)++);
+			return (++iterator(current));
+		}
+
+		const_iterator	end() const {
+			if (head == NULL)
+				return const_iterator();
+			node_ptr current = head;
+			while (current->right != NULL)
+				current = current->right;
+			return (const_iterator(++iterator(current)));
 		}
 
 		iterator	find(const T & e){
@@ -180,6 +214,24 @@ namespace ft {
 				}
 				else {
 					return iterator(current);
+				}
+			}
+			return this->end();
+		}
+
+		const_iterator	find(const T & e) const{
+			node_ptr current = head;
+			while (current != NULL) {
+				if (_comparator(*(current->elem), e))
+				{
+					current = current->right;
+				}
+				else if (_comparator(e, *(current->elem)))
+				{
+					current = current->left;
+				}
+				else {
+					return const_iterator(current);
 				}
 			}
 			return this->end();
@@ -209,6 +261,31 @@ namespace ft {
 			return this->end();
 		}
 
+		const_iterator 	find_not_less(const T & e) const{
+			node_ptr current = head;
+			while (current != NULL) {
+				if (_comparator(*(current->elem), e))
+				{
+					if (current->right == NULL){
+
+						return const_iterator(++iterator(current));
+					}
+					current = current->right;
+				}
+				else if (_comparator(e, *(current->elem)))
+				{
+					if (current->left == NULL){
+						return const_iterator(current);
+					}
+					current = current->left;
+				}
+				else {
+					return const_iterator(current);
+				}
+			}
+			return this->end();
+		}
+
 		///attention trouve possible le precedent ou pas
 		node_ptr	find_prev_or(const T & e){
 			node_ptr prev = head;
@@ -233,6 +310,7 @@ namespace ft {
 		node_ptr create_new(const T & e) {
 			node_ptr n = node_alloc.allocate(1);
 			node_alloc.construct(n, BTreeNode(e, alloc, node_alloc));
+			return (n);
 		}
 
 		void set_parent_reloc(node_ptr p, node_ptr n){
@@ -269,7 +347,8 @@ namespace ft {
 				set_parent_reloc(p, NULL);
 			}
 
-			node_alloc.destroy(p);
+			alloc.destroy(p->elem);
+			alloc.deallocate(p->elem, 1);
 			node_alloc.deallocate(p, 1);
 			_size--;
 		}
@@ -338,50 +417,63 @@ namespace ft {
 			delete[] arr;
 		}
 
-		void clear(node_ptr node){
-			if (node->right != NULL)
-				clear(node->right);
-			if (node->left != NULL)
-				clear(node->left);
-			node_alloc.destroy(node);
-			node_alloc.deallocate(node, 1);
-			_size--;
+		void clear(){
+			node_alloc.destroy(head);
+			node_alloc.deallocate(head, 1);
+			head = NULL;
+			_size = 0;
 		}
 
 	};
 
 	// #################################################################################
 	///BTree iterator specialization
-	template<typename T>
-	class bidirectional_iterator<BTree<T> >:  public iterator<bidirectional_iterator_tag, T > {
+	template<typename T, class Allocator, class Compare>
+	class bidirectional_iterator<BTree<T, Allocator, Compare> >:  public iterator<bidirectional_iterator_tag, BTree<T, Allocator, Compare> > {
 	private:
-		typedef bidirectional_iterator<BTree<T> > It;
+		typedef BTree<T, Allocator, Compare>				btree;
+		typedef bidirectional_iterator<btree > 				It;
+		typedef typename btree::BTreeNode::node_ptr 		node_pointer;
 
-		typename BTree<T>::BTreeNode * current;
+		node_pointer current;
 		bool	_end;
 		bool	_start;
 	public:
-		typedef long	difference_type;
-		typedef T 									value_type;
-		typedef typename BTree<T>::BTreeNode::node_ptr 		pointer;
-		typedef T&									reference;
-		typedef bidirectional_iterator_tag			iterator_category;
+		typedef long										difference_type;
+		typedef typename btree::value_type 					value_type;
+		typedef typename btree::pointer 					pointer;
+		typedef typename btree::const_pointer 				const_pointer;
+		typedef typename btree::reference					reference;
+		typedef typename btree::const_reference				const_reference;
 
-		bidirectional_iterator(pointer c): _end(false), _start(false) {current = c; };
-		bidirectional_iterator(const It & inst) : _end(inst._end), _start(inst._start), current(inst.current) { };
-		~bidirectional_iterator() {};
+	typedef bidirectional_iterator_tag						iterator_category;
 
-		// operators
-		It & operator=(const It & rhs){
-			_end = rhs._end;
-			_start = rhs._start;
-			current = rhs.current;
-			return *this;
-		}
+		bidirectional_iterator(node_pointer c): current(c), _end(false), _start(false) {  }
+		bidirectional_iterator(): current(), _end(true), _start(false) {  }
 
-		pointer _base() {
+		bidirectional_iterator(const It & inst) : current(inst._base()), _end(inst._is_end()), _start(inst._is_start()) { }
+		~bidirectional_iterator() {}
+
+
+		node_pointer _base() const {
 			return current;
 		}
+
+		bool _is_end() const {
+			return _end;
+		}
+
+		bool _is_start() const {
+			return _start;
+		}
+
+//		// operators
+//		It & operator=(const It & rhs){
+//			_end = rhs._is_end();
+//			_start = rhs._is_start();
+//			current = rhs._base();
+//			return *this;
+//		}
 
 		It  operator++(int){
 			It temp = *this;
@@ -498,10 +590,202 @@ namespace ft {
 		}
 
 		reference  operator*() const{
-			return current->elem;
+			return *(current->elem);
 		}
-		bool  operator==(const It & rhs) const{
-			return current == rhs.current && _end == rhs._end && _start == rhs._start;
+
+		pointer operator->() const { return &(operator*()); }
+
+		template<class V>
+		bool  operator==(const bidirectional_iterator<V> & rhs) const{
+			if (_end)
+				return rhs._is_end();
+			if (_start)
+				return rhs._is_end();
+			return current == rhs._base()  && _end == rhs._is_end() && _start == rhs._is_start();
+		}
+		bool  operator!=(const It & rhs) const{
+			return !(*this == rhs);
+		}
+
+	};
+
+	// #################################################################################
+	///Const BTree iterator specialization
+	template<typename T, class Allocator, class Compare>
+	class bidirectional_iterator<const BTree<T, Allocator, Compare> >:  public iterator<bidirectional_iterator_tag, const BTree<T, Allocator, Compare> > {
+	private:
+		typedef const BTree<T, Allocator, Compare>				btree;
+		typedef bidirectional_iterator<btree > 				It;
+		typedef typename btree::BTreeNode::node_ptr 		node_pointer;
+
+		node_pointer current;
+		bool	_end;
+		bool	_start;
+	public:
+		typedef long										difference_type;
+		typedef typename btree::value_type 					value_type;
+		typedef typename btree::pointer 					pointer;
+		typedef typename btree::const_pointer 				const_pointer;
+		typedef typename btree::reference					reference;
+		typedef typename btree::const_reference				const_reference;
+
+		typedef bidirectional_iterator_tag						iterator_category;
+
+		bidirectional_iterator(node_pointer c): current(c), _end(false), _start(false) {  }
+		bidirectional_iterator(): current(), _end(true), _start(false) {  }
+
+		template<class V>
+		bidirectional_iterator(const bidirectional_iterator<V> & inst) : current(inst._base()), _end(inst._is_end()), _start(inst._is_start()) { }
+		~bidirectional_iterator() {}
+
+
+		node_pointer _base() const {
+			return current;
+		}
+
+		bool _is_end() const {
+			return _end;
+		}
+
+		bool _is_start() const {
+			return _start;
+		}
+
+//		// operators
+//		It & operator=(const It & rhs){
+//			_end = rhs._is_end();
+//			_start = rhs._is_start();
+//			current = rhs._base();
+//			return *this;
+//		}
+
+		It  operator++(int){
+			It temp = *this;
+			if (_start){
+				_start = false;
+				return *this;
+			}
+			if (_end) //undefined but still dealt with
+				return temp;
+			if (current->right != NULL) {
+				current = current->right;
+				while (current->left != NULL)
+					current = current->left;
+			}
+			else {
+				It dangle = *this;
+				while (current->parent != NULL &&
+					   current == current->parent->right) {
+					current = current->parent;
+				}
+				if (current->parent != NULL)
+					current = current->parent;
+				else{
+					*this = dangle;
+					_end = true;
+				}
+			}
+			return temp;
+		}
+
+		It &  operator++(){
+			if (_start){
+				_start = false;
+				return *this;
+			}
+			if (_end) //undefined but still dealt with
+				return *this;
+			if (current->right != NULL) {
+				current = current->right;
+				while (current->left != NULL)
+					current = current->left;
+			}
+			else {
+				It dangle = *this;
+				while (current->parent != NULL &&
+					   current == current->parent->right) {
+					current = current->parent;
+				}
+				if (current->parent != NULL)
+					current = current->parent;
+				else {
+					*this = dangle;
+					_end = true;
+				}
+			}
+			return *this;
+		}
+
+		It operator--(int){
+			It temp = *this;
+			if (_end){
+				_end = false;
+				return temp;
+			}
+			if (_start) //undefined but still dealt with
+				return temp;
+			if (current->left != NULL) {
+				current = current->left;
+				while (current->right != NULL)
+					current = current->right;
+			}
+			else {
+				It dangle = *this;
+				while (current->parent != NULL &&
+					   current == current->parent->left) {
+					current = current->parent;
+				}
+				if (current->parent != NULL)
+					current = current->parent;
+				else{
+					*this = dangle;
+					_start = true;
+				}
+			}
+			return temp;
+		}
+
+		It &  operator--(){
+			if (_end){
+				_end = false;
+				return *this;
+			}
+			if (_start) //undefined but still dealt with
+				return *this;
+			if (current->left != NULL) {
+				current = current->left;
+				while (current->right != NULL)
+					current = current->right;
+			}
+			else {
+				It dangle = *this;
+				while (current->parent != NULL &&
+					   current == current->parent->left) {
+					current = current->parent;
+				}
+				if (current->parent != NULL)
+					current = current->parent;
+				else{
+					*this = dangle;
+					_start = true;
+				}
+			}
+			return *this;
+		}
+
+		const_reference  operator*() const{
+			return *(current->elem);
+		}
+
+		const_pointer operator->() const { return &(operator*()); }
+
+		template<class V>
+		bool  operator==(const bidirectional_iterator<V> & rhs) const{
+			if (_end)
+				return rhs._is_end();
+			if (_start)
+				return rhs._is_end();
+			return current == rhs._base()  && _end == rhs._is_end() && _start == rhs._is_start();
 		}
 		bool  operator!=(const It & rhs) const{
 			return !(*this == rhs);

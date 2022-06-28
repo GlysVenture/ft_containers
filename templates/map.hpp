@@ -9,6 +9,7 @@
 #include <memory>
 #include "utility.hpp"
 #include "b_tree.hpp"
+#include "algorithm.hpp"
 
 namespace ft{
 
@@ -19,6 +20,10 @@ namespace ft{
 		class Allocator = std::allocator<ft::pair<const Key, T> > >
 	class map
 	{
+	public:
+		class value_compare;
+	private:
+		typedef BTree<ft::pair<const Key, T>, Allocator, value_compare> btree;
 
 	public:
 		typedef Key									key_type;
@@ -28,18 +33,18 @@ namespace ft{
 		typedef long 								difference_type;
 		typedef Compare								key_compare;
 		typedef Allocator							allocator_type;
-		typedef value_type &						reference;
-		typedef const value_type &					const_reference;
-		typedef typename Allocator::pointer			pointer;
-		typedef typename Allocator::const_pointer	const_pointer;
-		typedef typename BTree<value_type>::iterator iterator;
-		typedef typename BTree<value_type>::const_iterator const_iterator;
+		typedef typename btree::reference			reference;
+		typedef typename btree::const_reference		const_reference;
+		typedef typename btree::pointer				pointer;
+		typedef typename btree::const_pointer		const_pointer;
+		typedef typename btree::iterator 			iterator;
+		typedef typename btree::const_iterator 		const_iterator;
 		typedef ft::reverse_iterator<iterator>		reverse_iterator;
 		typedef ft::reverse_iterator<const_iterator>	const_reverse_iterator;
 
 		///Compare class
 		typedef Compare elem_compare;
-		class value_compare : std::binary_function< value_type, value_type, bool >
+	class value_compare : std::binary_function< value_type, value_type, bool >
 		{
 			friend class map;
 		protected:
@@ -57,14 +62,15 @@ namespace ft{
 		};
 
 	private:
-		value_compare						_comparator;
-		BTree<value_type, allocator_type>	_tree;
+		value_compare		_comparator;
+		btree				_tree;
 
 	public:
-		explicit map( const Compare& comp,
+		map( const Compare& comp = Compare(),
 					  const Allocator& alloc = Allocator() ):
 					  _comparator(comp), _tree( _comparator, alloc)
 	  	{  }
+
 		template< class InputIt >
 		map( InputIt first, InputIt last,
 			 const Compare& comp = Compare(),
@@ -81,6 +87,7 @@ namespace ft{
 		map& operator=( const map& other ) {
 			_comparator = other._comparator;
 			_tree = other._tree;
+			return *this;
 		}
 
 		allocator_type get_allocator() const{
@@ -98,7 +105,7 @@ namespace ft{
 
 		iterator insert( iterator hint, const value_type& value ){
 			(void) hint;
-			return insert(value);
+			return insert(value).first;
 		}
 
 		template< class InputIt >
@@ -113,7 +120,7 @@ namespace ft{
 		T& at( const Key& key ){
 			value_type temp = ft::make_pair(key, mapped_type());
 			iterator it = _tree.find(temp);
-			if (it == _tree.last())
+			if (it == --_tree.end())
 				throw std::out_of_range("nonexistent key");
 			return (*it).second;
 		}
@@ -121,13 +128,13 @@ namespace ft{
 		const T& at( const Key& key ) const{
 			value_type temp = ft::make_pair(key, mapped_type());
 			iterator it = _tree.find(temp);
-			if (it == _tree.last())
+			if (it == --_tree.end())
 				throw std::out_of_range("nonexistent key");
 			return (*it).second;
 		}
 
 		T& operator[]( const Key& key ){
-			return this->insert(ft::make_pair(key,mapped_type())).first->second; // -> == *it. ?
+			return this->insert(ft::make_pair(key,mapped_type())).first->second;
 		}
 
 		//Iterators
@@ -148,19 +155,19 @@ namespace ft{
 		}
 
 		reverse_iterator rbegin(){
-			return reverse_iterator(_tree.end()--);
+			return reverse_iterator(_tree.end());
 		}
 
 		const_reverse_iterator rbegin() const{
-			return const_reverse_iterator(_tree.end()--);
+			return const_reverse_iterator(_tree.end());
 		}
 
 		reverse_iterator rend(){
-			return reverse_iterator(_tree.begin()--);
+			return reverse_iterator(_tree.begin());
 		}
 
 		const_reverse_iterator rend() const{
-			return const_reverse_iterator(_tree.begin()--);
+			return const_reverse_iterator(_tree.begin());
 		}
 
 		//size thingys
@@ -195,14 +202,12 @@ namespace ft{
 		}
 
 		void swap( map& other ){
-			value_compare temp_comp = _comparator.comp;
-			BTree<value_type, allocator_type> temp_tree = _tree;
+			value_compare temp_comp = _comparator;
 
-			_comparator.comp = other._comparator.comp;
-			_tree = other._tree;
+			_comparator = other._comparator;
 
-			other._comparator.comp = temp_comp;
-			other._tree = temp_tree;
+			other._comparator = temp_comp;
+			_tree.swap(other._tree);
 		}
 
 		//Search funcs
@@ -216,18 +221,16 @@ namespace ft{
 			return _tree.find(ft::make_pair(key, mapped_type()));
 		}
 
-		std::pair<iterator,iterator> equal_range( const Key& key ){
-			iterator it = _tree.find(ft::make_pair(key, mapped_type()));
-			iterator end = it;
-			return ft::make_pair(it, ++end);
+		const_iterator find( const Key& key ) const{
+			return _tree.find(ft::make_pair(key, mapped_type()));
 		}
 
-		std::pair<const_iterator,const_iterator> equal_range( const Key& key ) const{
-			const_iterator it = _tree.find(ft::make_pair(key, mapped_type()));
-			iterator temp = it;
-			temp++;
-			const_iterator end = temp;
-			return ft::make_pair(it, end);
+		ft::pair<iterator,iterator> equal_range( const Key& key ){
+			return ft::make_pair(lower_bound(key), upper_bound(key));
+		}
+
+		ft::pair<const_iterator,const_iterator> equal_range( const Key& key ) const{
+			return ft::make_pair(lower_bound(key), upper_bound(key));
 		}
 
 		iterator lower_bound( const Key& key ){
@@ -246,11 +249,10 @@ namespace ft{
 		}
 
 		const_iterator upper_bound( const Key& key ) const{
-			iterator 	it = _tree.find_not_less(ft::make_pair(key, mapped_type()));
+			const_iterator 	it = _tree.find_not_less(ft::make_pair(key, mapped_type()));
 			if ((*it).first == key)
 				it++;
-			const_iterator cit = it;
-			return cit;
+			return const_iterator(it);
 		}
 
 		//Observers?
@@ -266,10 +268,8 @@ namespace ft{
 
 	template< class Key, class T, class Compare, class Alloc >
 	bool operator<( const map<Key,T,Compare,Alloc>& lhs,
-					 const map<Key,T,Compare,Alloc>& rhs ){
-		return ft::lexicographical_compare<
-			map<Key,T,Compare,Alloc>::iterator,
-			map<Key,T,Compare,Alloc>::iterator>
+					 const map<Key,T,Compare,Alloc>& rhs){
+		return ft::lexicographical_compare
 			(lhs.begin(), lhs.end(),
 			 rhs.begin(), rhs.end());
 	}

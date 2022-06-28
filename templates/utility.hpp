@@ -51,12 +51,15 @@ namespace ft {
 		typedef T1	first_type;
 		typedef T2	second_type;
 
-		pair() {  }
+		pair(): first(), second() {  }
 		pair( const T1& x, const T2& y ): first(x), second(y) { }
-		pair( const pair<T1, T2>& p ): first(p.first), second(p.second) {  }
+
+		template<class P1, class P2>
+		pair( const pair<P1, P2>& p ): first(p.first), second(p.second) {  }
 		~pair() { }
 
-		pair & operator=(const pair & p) {
+		template< class R1, class R2>
+		pair & operator=(const pair<R1, R2> & p) {
 			first = p.first;
 			second = p.second;
 			return *this;
@@ -65,46 +68,46 @@ namespace ft {
 
 	//Pair operators <=>
 
-	template< class T1, class T2 >
-	bool operator==( const pair<T1,T2>& lhs, const pair<T1,T2>& rhs ) {
+	template< class T1, class T2, class R1, class R2  >
+	bool operator==( const pair<T1,T2>& lhs, const pair<R1,R2>& rhs ) {
 		if (lhs.first == rhs.first && lhs.second == rhs.second)
 			return true;
 		return false;
 	}
 
-	template< class T1, class T2 >
-	bool operator!=( const pair<T1,T2>& lhs, const pair<T1,T2>& rhs ) {
+	template< class T1, class T2, class R1, class R2  >
+	bool operator!=( const pair<T1,T2>& lhs, const pair<R1,R2>& rhs ) {
 		if (lhs.first != rhs.first || lhs.second != rhs.second)
 			return true;
 		return false;
 	}
 
-	template< class T1, class T2 >
-	bool operator<( const pair<T1,T2>& lhs, const pair<T1,T2>& rhs ) {
-		if (lhs.first < rhs.first && lhs.second < rhs.second)
+	template< class T1, class T2, class R1, class R2  >
+	bool operator<( const pair<T1,T2>& lhs, const pair<R1,R2>& rhs ) {
+		if (lhs.first < rhs.first || lhs.second < rhs.second)
 			return true;
 		return false;
 	}
 
-	template< class T1, class T2 >
-	bool operator>( const pair<T1,T2>& lhs, const pair<T1,T2>& rhs ) {
-		if (lhs.first > rhs.first && lhs.second > rhs.second)
+	template< class T1, class T2, class R1, class R2  >
+	bool operator>( const pair<T1,T2>& lhs, const pair<R1,R2>& rhs ) {
+		if (lhs.first > rhs.first || lhs.second > rhs.second)
 			return true;
 		return false;
 	}
 
-	template< class T1, class T2 >
-	bool operator<=( const pair<T1,T2>& lhs, const pair<T1,T2>& rhs ) {
-		if (lhs.first <= rhs.first && lhs.second <= rhs.second)
-			return true;
-		return false;
+	template< class T1, class T2, class R1, class R2  >
+	bool operator<=( const pair<T1,T2>& lhs, const pair<R1,R2>& rhs ) {
+		if (lhs > rhs)
+			return false;
+		return true;
 	}
 
-	template< class T1, class T2 >
-	bool operator>=( const pair<T1,T2>& lhs, const pair<T1,T2>& rhs ) {
-		if (lhs.first >= rhs.first && lhs.second >= rhs.second)
-			return true;
-		return false;
+	template< class T1, class T2, class R1, class R2  >
+	bool operator>=( const pair<T1,T2>& lhs, const pair<R1,R2>& rhs ) {
+		if (lhs < rhs)
+			return false;
+		return true;
 	}
 
 	///make_pair()
