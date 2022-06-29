@@ -152,6 +152,10 @@ namespace ft {
 			return alloc;
 		}
 
+		size_type max_size() const{
+			return std::min(alloc.max_size(), node_alloc.max_size());
+		}
+
 		void swap(BTree & other){
 			size_type t_size = _size;
 			node_ptr t_head = head;
@@ -426,6 +430,31 @@ namespace ft {
 
 	};
 
+	// ##########
+	template< class T , class All, class Compare> //todo understand
+	struct iterator_traits< bidirectional_iterator<BTree<T, All, Compare> > > {
+	private:
+		typedef BTree<T, All, Compare>	btree;
+	public:
+		typedef typename btree::difference_type 	difference_type;
+		typedef	typename btree::value_type		 	value_type;
+		typedef typename btree::pointer 			pointer;
+		typedef typename btree::reference 			reference;
+		typedef bidirectional_iterator_tag					iterator_category;
+	};
+
+	template< class T , class All, class Compare> //todo understand
+	struct iterator_traits< bidirectional_iterator<const BTree<T, All, Compare> > > {
+	private:
+		typedef const BTree<T, All, Compare>	btree;
+	public:
+		typedef typename btree::difference_type 	difference_type;
+		typedef	typename btree::value_type		 	value_type;
+		typedef typename btree::const_pointer		pointer;
+		typedef typename btree::const_reference 	reference;
+		typedef bidirectional_iterator_tag					iterator_category;
+	};
+
 	// #################################################################################
 	///BTree iterator specialization
 	template<typename T, class Allocator, class Compare>
@@ -434,19 +463,17 @@ namespace ft {
 		typedef BTree<T, Allocator, Compare>				btree;
 		typedef bidirectional_iterator<btree > 				It;
 		typedef typename btree::BTreeNode::node_ptr 		node_pointer;
+		typedef iterator_traits<It>							traits;
 
 		node_pointer current;
 		bool	_end;
 		bool	_start;
 	public:
 		typedef long										difference_type;
-		typedef typename btree::value_type 					value_type;
-		typedef typename btree::pointer 					pointer;
-		typedef typename btree::const_pointer 				const_pointer;
-		typedef typename btree::reference					reference;
-		typedef typename btree::const_reference				const_reference;
-
-	typedef bidirectional_iterator_tag						iterator_category;
+		typedef typename traits::value_type 				value_type;
+		typedef typename traits::pointer 					pointer;
+		typedef typename traits::reference					reference;
+		typedef typename traits::iterator_category 			iterator_category;
 
 		bidirectional_iterator(node_pointer c): current(c), _end(false), _start(false) {  }
 		bidirectional_iterator(): current(), _end(true), _start(false) {  }
@@ -466,14 +493,6 @@ namespace ft {
 		bool _is_start() const {
 			return _start;
 		}
-
-//		// operators
-//		It & operator=(const It & rhs){
-//			_end = rhs._is_end();
-//			_start = rhs._is_start();
-//			current = rhs._base();
-//			return *this;
-//		}
 
 		It  operator++(int){
 			It temp = *this;
@@ -617,19 +636,17 @@ namespace ft {
 		typedef const BTree<T, Allocator, Compare>				btree;
 		typedef bidirectional_iterator<btree > 				It;
 		typedef typename btree::BTreeNode::node_ptr 		node_pointer;
+		typedef iterator_traits<It>							traits;
 
 		node_pointer current;
 		bool	_end;
 		bool	_start;
 	public:
 		typedef long										difference_type;
-		typedef typename btree::value_type 					value_type;
-		typedef typename btree::pointer 					pointer;
-		typedef typename btree::const_pointer 				const_pointer;
-		typedef typename btree::reference					reference;
-		typedef typename btree::const_reference				const_reference;
-
-		typedef bidirectional_iterator_tag						iterator_category;
+		typedef typename traits::value_type 				value_type;
+		typedef typename traits::pointer 					pointer;
+		typedef typename traits::reference					reference;
+		typedef typename traits::iterator_category 			iterator_category;
 
 		bidirectional_iterator(node_pointer c): current(c), _end(false), _start(false) {  }
 		bidirectional_iterator(): current(), _end(true), _start(false) {  }
@@ -650,14 +667,6 @@ namespace ft {
 		bool _is_start() const {
 			return _start;
 		}
-
-//		// operators
-//		It & operator=(const It & rhs){
-//			_end = rhs._is_end();
-//			_start = rhs._is_start();
-//			current = rhs._base();
-//			return *this;
-//		}
 
 		It  operator++(int){
 			It temp = *this;
@@ -773,11 +782,11 @@ namespace ft {
 			return *this;
 		}
 
-		const_reference  operator*() const{
+		reference operator*() const{
 			return *(current->elem);
 		}
 
-		const_pointer operator->() const { return &(operator*()); }
+		pointer operator->() const { return &(operator*()); }
 
 		template<class V>
 		bool  operator==(const bidirectional_iterator<V> & rhs) const{

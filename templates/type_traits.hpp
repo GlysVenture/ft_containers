@@ -84,16 +84,16 @@ namespace ft {
 		typedef bool	value_type;
 	};
 
-	///is_integral<long long>::value
-	template<>
-	struct is_integral<long long> {
-		static const bool value = true;
-		bool operator()(){
-			return value;
-		}
-
-		typedef bool	value_type;
-	};
+//	///is_integral<long long>::value
+//	template<>
+//	struct is_integral<long long> {
+//		static const bool value = true;
+//		bool operator()(){
+//			return value;
+//		}
+//
+//		typedef bool	value_type;
+//	};
 }
 
 #endif //FT_CONTAINERS_TYPE_TRAITS_HPP
