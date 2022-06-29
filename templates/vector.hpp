@@ -110,7 +110,7 @@ namespace ft {
 
 	///default constructor
 	template<typename T, class Allocator>
-	vector<T, Allocator>::vector(const allocator_type & alloc): _size(0), _capacity(0), alloc(alloc)
+	vector<T, Allocator>::vector(const allocator_type & alloc): _size(0), _capacity(1), alloc(alloc)
 	{
 		arr = this->alloc.allocate(_capacity);
 	}
@@ -368,14 +368,19 @@ namespace ft {
 	{
 		if (new_cap > this->max_size() - this->_capacity)
 			throw std::length_error("vector capacity requested is too big");
-		if (new_cap > _capacity)
+		size_type temp_cap = _capacity;
+		if (_capacity == 0 && new_cap != 0)
+			temp_cap = 1;
+		while (new_cap > temp_cap)
+			temp_cap = temp_cap < this->max_size() / 2 ? temp_cap * 2 : this->max_size();
+		if (temp_cap > _capacity)
 		{
-			T * temp = alloc.allocate(new_cap);
+			T * temp = alloc.allocate(temp_cap);
 			rebuild(temp, arr, _size, alloc);
 			if (_capacity > 0)
 				alloc.deallocate(arr, _capacity);
 			arr = temp;
-			_capacity = new_cap;
+			_capacity = temp_cap;
 		}
 	}
 
